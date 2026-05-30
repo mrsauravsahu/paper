@@ -264,6 +264,8 @@ $if(beamer)$
 $else$
 \usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
 $endif$
+$else$
+\usepackage[margin=1in]{geometry}
 $endif$
 $if(beamer)$
 \newif\ifbibliography
@@ -329,7 +331,10 @@ $if(strikeout)$
 \usepackage[normalem]{ulem}
 % Avoid problems with \sout in headers with hyperref
 \pdfstringdefDisableCommands{\renewcommand{\sout}{}}
+$else$
+\usepackage[normalem]{ulem}
 $endif$
+\providecommand{\st}[1]{\sout{#1}}
 \setlength{\emergencystretch}{3em} % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -360,6 +365,18 @@ $header-includes$
 $endfor$
 
 \usepackage{pmboxdraw}
+\usepackage{newunicodechar}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{≠}{\ensuremath{\neq}}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
+\newunicodechar{←}{\ensuremath{\leftarrow}}
+\newunicodechar{⟹}{\ensuremath{\Longrightarrow}}
+\newunicodechar{✓}{\checkmark}
+\newunicodechar{✗}{\texttimes}
+\newunicodechar{…}{\ldots}
+\newunicodechar{—}{\textemdash}
+\newunicodechar{–}{\textendash}
 
 $if(lang)$
 \ifxetex
@@ -438,13 +455,9 @@ $endif$
 \renewcommand\section{\clearpage\defsection}
 
 \usepackage{fvextra}
+\fvset{breaklines=true}
 
-% Note: redefining the inline code to have a background
 \definecolor{codebgcolor}{cmyk}{0,0.01,0.1,0}
-\let\oldtexttt\texttt
-\renewcommand{\texttt}[1]{
-  \colorbox{codebgcolor}{\oldtexttt{#1}}
-}
 
 % Note: redefining the Verbatim environment to have a background
 % I used `latexdef -E itemize` and `latexdef -E enumerate` to
