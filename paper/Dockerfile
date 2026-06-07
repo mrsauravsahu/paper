@@ -9,7 +9,5 @@ COPY *.js package* template.tex .
 
 RUN npm ci
 
-RUN npm ci
-
 CMD ["/bin/bash"]
 

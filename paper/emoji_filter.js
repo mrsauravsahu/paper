@@ -132,9 +132,14 @@ async function code_to_texttt(code_text, format, emoji_source) {
 async function codeblock_to_verbatim(code_text, format, emoji_source) {
 	const context = "Verbatim"
 	var items = await replace_emojis(code_text, format, emoji_source, context)
+	if (!Array.isArray(items)) {
+		// No emojis — use plain verbatim to avoid pandoc LaTeX-escaping special chars
+		// like > → \textgreater{} which break inside commandchars Verbatim environments
+		return pandoc.RawBlock("latex", `\\begin{Verbatim}\n${code_text}\n\\end{Verbatim}`)
+	}
 	return ([
 		pandoc.RawBlock("latex", "\\begin{"+context+"}[commandchars=\\\\\\{\\}, mathescape, gobble=\\autogobble]"),
-		pandoc.Para([...(Array.isArray(items) ? items : [items]),]),
+		pandoc.Para([...items]),
 		pandoc.RawBlock("latex", "\\end{"+context+"}"),
 	])
 }
