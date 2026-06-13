@@ -4,6 +4,7 @@
   "description": "Replaces unicode emoji codepoints to SVG representations so that they are displayed inside the resulting PDF",
   "main": "create-example.sh",
   "dependencies": {
+    "mermaid-filter": "^1.4.7",
     "pandoc-filter": "^2.0.0",
     "shelljs": "^0.8.4",
     "twemoji": "^12.1.5"

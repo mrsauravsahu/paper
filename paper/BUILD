@@ -6,7 +6,7 @@ github_repo(
 
 sh_cmd(
   name = "pdf",
-  cmd = 'docker run --rm -v "\\`pwd\\`:/data" paper:latest bash -c "node app.js \\\$@ \\\$@.out.md; pandoc \\\$@.out.md -o \\\$@.pdf --filter=/data/emoji_filter.js && rm \\\$@.out.md"'
+  cmd = '"$(dirname $BUILD_FILE)/paper" \\\$@'
 )
 
 gentest(
