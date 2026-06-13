@@ -11,6 +11,7 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 INPUT=""
 PANDOC_VARS=""
 VERBOSE=false
+PRESERVE=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -25,9 +26,12 @@ for arg in "$@"; do
     -v|--verbose)
       VERBOSE=true
       ;;
+    -P|--preserve)
+      PRESERVE=true
+      ;;
     -*)
       echo "Unknown flag: $arg" >&2
-      echo "Usage: paper <file.md> [--continuous] [--pages=yes|no] [-v]" >&2
+      echo "Usage: paper <file.md> [--continuous] [--pages=yes|no] [-P] [-v]" >&2
       exit 1
       ;;
     *)
@@ -37,7 +41,7 @@ for arg in "$@"; do
 done
 
 if [ -z "$INPUT" ]; then
-  echo "Usage: paper <file.md> [--continuous] [--pages=yes|no] [-v]" >&2
+  echo "Usage: paper <file.md> [--continuous] [--pages=yes|no] [-P] [-v]" >&2
   exit 1
 fi
 
@@ -62,14 +66,5 @@ docker run --rm \
 
 open "$OUTPUT_PATH"
 
-echo -n "Delete generated PDF? [Y/n] "
-read -rsn1 reply </dev/tty
-echo
-if [[ "$reply" == "Y" || "$reply" == "y" || "$reply" == $'\n' ]]; then
-  rm "$OUTPUT_PATH"
-  echo "PDF deleted."
-else
-  echo "PDF preserved."
-fi
-
 set +x
+
