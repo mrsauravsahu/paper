@@ -10,13 +10,15 @@ RUN apt-get update -y && apt-get install -y curl ca-certificates \
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
-ENV MERMAID_FILTER_PUPPETEER_CONFIG=/paper/puppeteer-config.json
+ENV MERMAID_FILTER_PUPPETEER_CONFIG=/paper/config/puppeteer-config.json
 
-WORKDIR /app
+WORKDIR /paper
 
-COPY *.js package* template.tex .
-
+COPY package* .
 RUN npm ci
+
+COPY config/ config/
+COPY src/ src/
 
 CMD ["/bin/bash"]
 
