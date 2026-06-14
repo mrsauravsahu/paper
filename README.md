@@ -1,4 +1,9 @@
-# The Paper Project
+\begin{center}
+{\Huge The Paper Project}
+
+\vspace{0.25em}
+{\large --- Sahu, S}
+\end{center}
 
 Paper is the truest form of a document, physical, permanent, and universally readable. 'The Paper Project' brings together Markdown and LaTeX with diagrams, formulae, and rich formatting and renders the result as a PDF.
 
