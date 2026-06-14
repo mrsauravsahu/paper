@@ -1,12 +1,6 @@
----
-Author: Sahu <mrsauravsahu@outloook.com>
-continuous-pages: true
-no-page-numbers: true
----
+# The Paper Project
 
-# paper
-
-A Markdown-to-PDF tool built on [pandoc](https://pandoc.org/), with support for emoji, Mermaid diagrams, and a custom LaTeX template.
+Paper is the truest form of a document, physical, permanent, and universally readable. 'The Paper Project' brings together Markdown and LaTeX with diagrams, formulae, and rich formatting and renders the result as a PDF.
 
 ## Overview
 
