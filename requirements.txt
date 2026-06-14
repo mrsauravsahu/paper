@@ -1,4 +1,0 @@
-black==24.4.2
-openai-whisper==20240930
-torch==2.3.1
-

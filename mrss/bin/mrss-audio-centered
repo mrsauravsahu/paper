@@ -1,7 +1,0 @@
-#!/bin/bash
-
-input="$1"
-extension="${input##*.}"
-output="${input%.*}.audio-centered.${extension}"
-
-ffmpeg -i "$input" -af "pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1" -c:v copy -c:a aac "$output"
