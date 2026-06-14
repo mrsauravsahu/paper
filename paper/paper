@@ -11,10 +11,18 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 INPUT=""
 PANDOC_VARS=""
 VERBOSE=false
-PRESERVE=false
+PRESERVE=true
 
 for arg in "$@"; do
   case "$arg" in
+    --continuous)
+      PANDOC_VARS="$PANDOC_VARS -V continuous-page=true"
+      ;;
+    --breaks=yes)
+      PANDOC_VARS="$PANDOC_VARS -V section-breaks=true"
+      ;;
+    --breaks=no)
+      ;;
     --title=yes)
       PANDOC_VARS="$PANDOC_VARS -V show-title=true"
       ;;
@@ -33,7 +41,7 @@ for arg in "$@"; do
       ;;
     -*)
       echo "Unknown flag: $arg" >&2
-      echo "Usage: paper <file.md> [--title=yes|no] [--pages=yes|no] [-P] [-v]" >&2
+      echo "Usage: paper <file.md> [--continuous] [--breaks=yes|no] [--title=yes|no] [--pages=yes|no] [-P] [-v]" >&2
       exit 1
       ;;
     *)
@@ -43,7 +51,7 @@ for arg in "$@"; do
 done
 
 if [ -z "$INPUT" ]; then
-  echo "Usage: paper <file.md> [--title=yes|no] [--pages=yes|no] [-P] [-v]" >&2
+  echo "Usage: paper <file.md> [--continuous] [--breaks=yes|no] [--title=yes|no] [--pages=yes|no] [-P] [-v]" >&2
   exit 1
 fi
 

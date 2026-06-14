@@ -256,7 +256,12 @@ $else$
 \usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
 $endif$
 $else$
+$if(continuous-page)$
+\usepackage[margin=1in,paperheight=99in]{geometry}
+\AtEndDocument{\immediate\write\@auxout{\string\@writefile{toc}{}}\newdimen\rhl\rhl\dimexpr\pagetotal+2in\relax\global\pdfpageheight=\rhl}
+$else$
 \usepackage[margin=1in]{geometry}
+$endif$
 $endif$
 $if(beamer)$
 \newif\ifbibliography
@@ -443,7 +448,9 @@ $endif$
 % \clearpage for every section.
 % ref: https://tex.stackexchange.com/questions/353912/titlesecs-sectionbreak-not-recognized-after-empty-previous-sections
 \let\defsection\section
+$if(section-breaks)$
 \renewcommand\section{\clearpage\defsection}
+$endif$
 
 \usepackage{fvextra}
 \fvset{breaklines=true}
