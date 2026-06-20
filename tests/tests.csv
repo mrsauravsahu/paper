@@ -1,0 +1,5 @@
+id,description,command,check
+1,no output flag - pdf must not appear next to input,paper tests/no-flag.md -n,! test -f tests/no-flag.pdf
+2,short flag -o - pdf must appear at specified path,paper tests/with-o-flag.md -n -o tests/out-o-flag.pdf,test -f tests/out-o-flag.pdf
+3,long flag --output - pdf must appear at specified path,paper tests/with-output-flag.md -n --output tests/out-output-flag.pdf,test -f tests/out-output-flag.pdf
+4,equals syntax --output= - pdf must appear at specified path,paper tests/with-output-eq-flag.md -n --output=tests/out-output-eq-flag.pdf,test -f tests/out-output-eq-flag.pdf
