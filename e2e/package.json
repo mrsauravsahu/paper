@@ -1,0 +1,14 @@
+{
+  "name": "paper-e2e",
+  "version": "0.1.0",
+  "description": "Image diffing e2e tests for paper PDF vs editor preview",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "dependencies": {
+    "pixelmatch": "5.3.0",
+    "pngjs": "^7.0.0",
+    "puppeteer": "^24.0.0"
+  }
+}
