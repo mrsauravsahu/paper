@@ -19,10 +19,21 @@ Paper is the truest form of a document, physical, permanent, and universally rea
 ## Requirements
 
 - Docker
-- The `paper:latest` image built from this directory
+
+## Installation
+
+Clone the repo and build the Docker image:
 
 ```sh
+git clone <repo-url> $HOME/paper
+cd $HOME/paper
 docker build -t paper:latest .
+```
+
+Then symlink the `paper` script into a directory on your `$PATH`:
+
+```sh
+ln -sf $HOME/paper/paper $HOME/.local/bin/paper
 ```
 
 ## Usage
@@ -36,6 +47,7 @@ paper <file.md> [options]
 | `--pages=yes` | Show page numbers (default) |
 | `--pages=no` | Hide page numbers |
 | `--continuous` | No page break between sections |
+| `-o`, `--output <file.pdf>` | Write PDF to this path (default: temp dir, opened automatically) |
 | `-v`, `--verbose` | Print commands as they run |
 
 After the PDF is generated it opens automatically. You are then prompted whether to keep or delete it.
@@ -51,6 +63,9 @@ paper report.md --pages=no
 
 # No section breaks, no page numbers
 paper report.md --continuous --pages=no
+
+# Save PDF to a specific path
+paper report.md -o ~/Documents/report.pdf
 ```
 
 ## Mermaid diagrams
