@@ -9,11 +9,15 @@ done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 
 INPUT=""
+OUTPUT=""
 PANDOC_VARS=""
 VERBOSE=false
-PRESERVE=true
+NO_OPEN=false
 
-for arg in "$@"; do
+USAGE="Usage: paper <file.md> -o <output.pdf> | -n [--continuous] [--breaks=yes|no] [--title=yes|no] [--pages=yes|no] [-v]"
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
   case "$arg" in
     --continuous)
       PANDOC_VARS="$PANDOC_VARS -V continuous-page=true"
@@ -36,22 +40,36 @@ for arg in "$@"; do
     -v|--verbose)
       VERBOSE=true
       ;;
-    -P|--preserve)
-      PRESERVE=true
+    -n|--no-open)
+      NO_OPEN=true
+      ;;
+    -o|--output)
+      OUTPUT="$2"
+      shift
+      ;;
+    --output=*)
+      OUTPUT="${arg#--output=}"
       ;;
     -*)
       echo "Unknown flag: $arg" >&2
-      echo "Usage: paper <file.md> [--continuous] [--breaks=yes|no] [--title=yes|no] [--pages=yes|no] [-P] [-v]" >&2
+      echo "$USAGE" >&2
       exit 1
       ;;
     *)
       INPUT="$arg"
       ;;
   esac
+  shift
 done
 
 if [ -z "$INPUT" ]; then
-  echo "Usage: paper <file.md> [--continuous] [--breaks=yes|no] [--title=yes|no] [--pages=yes|no] [-P] [-v]" >&2
+  echo "$USAGE" >&2
+  exit 1
+fi
+
+if [ -z "$OUTPUT" ] && ! $NO_OPEN; then
+  echo "Specify -o <output.pdf> to save the PDF, or -n to check generation only." >&2
+  echo "$USAGE" >&2
   exit 1
 fi
 
@@ -60,22 +78,34 @@ $VERBOSE && set -x
 INPUT_DIR="$(cd "$(dirname "$INPUT")" && pwd)"
 INPUT_BASENAME="$(basename "$INPUT")"
 OUTPUT_BASENAME="${INPUT_BASENAME%.md}.pdf"
-OUTPUT_PATH="$INPUT_DIR/$OUTPUT_BASENAME"
+
+if [ -n "$OUTPUT" ]; then
+  OUTPUT_PATH="$(cd "$(dirname "$OUTPUT")" && pwd)/$(basename "$OUTPUT")"
+  OUTPUT_DIR="$(dirname "$OUTPUT_PATH")"
+  DOCKER_OUTPUT_MOUNT="-v $OUTPUT_DIR:/output"
+  PANDOC_OUTPUT="/output/$(basename "$OUTPUT_PATH")"
+else
+  DOCKER_OUTPUT_MOUNT=""
+  PANDOC_OUTPUT="/tmp/$OUTPUT_BASENAME"
+fi
 
 echo "Generating PDF..."
 docker run --rm \
-  -v "$INPUT_DIR:/data" \
+  -v "$INPUT_DIR:/input" \
+  $DOCKER_OUTPUT_MOUNT \
   -e MERMAID_FILTER_FORMAT=pdf \
   paper:latest bash -c \
-  "node /paper/src/pandoc-emoji-filter.js /data/$INPUT_BASENAME /data/$INPUT_BASENAME.out.md && \
-   pandoc /data/$INPUT_BASENAME.out.md -o /data/$OUTPUT_BASENAME \
+  "node /paper/src/pandoc-emoji-filter.js /input/$INPUT_BASENAME /input/$INPUT_BASENAME.out.md && \
+   pandoc /input/$INPUT_BASENAME.out.md -o $PANDOC_OUTPUT \
      --template=/paper/config/template.tex \
      --filter=/paper/node_modules/.bin/mermaid-filter \
      --filter=/paper/src/emoji-filter.js \
      $PANDOC_VARS && \
-   rm /data/$INPUT_BASENAME.out.md"
+   rm /input/$INPUT_BASENAME.out.md"
 
-open "$OUTPUT_PATH"
+if [ -n "$OUTPUT" ] && ! $NO_OPEN; then
+  echo "$OUTPUT_PATH"
+  open "$OUTPUT_PATH"
+fi
 
 set +x
-
