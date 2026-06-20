@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-serif.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --paper:  #F7F4EF;
+      --ink:    #1A1A18;
+      --red:    #C8102E;
+      --gray:   #8C8678;
+      --cream:  #EDE9E0;
+      --white:  #FFFFFF;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Toolbar ─────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1.5rem;
+      border-bottom: 1px solid var(--cream);
+      flex-shrink: 0;
+    }
+
+    .toolbar-logo {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 900;
+      color: var(--ink);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .toolbar-logo span { color: var(--red); }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .filename-input {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--ink);
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--cream);
+      padding: 0.25rem 0;
+      width: 180px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .filename-input:focus { border-bottom-color: var(--ink); }
+
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.4rem 0.875rem;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.8; }
+
+    .btn-save {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .btn-open {
+      background: transparent;
+      color: var(--gray);
+      border: 1px solid var(--cream);
+    }
+
+    /* ── Editor area ─────────────────────────── */
+    .editor-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .pane {
+      overflow-y: auto;
+      height: 100%;
+    }
+
+    .pane-source {
+      background: #EDEAE2;
+      border-right: 1px solid #D8D4CC;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pane-label {
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray);
+      padding: 0.75rem 1.5rem 0.5rem;
+      flex-shrink: 0;
+      border-bottom: 1px solid #D8D4CC;
+    }
+
+    .editor-textarea {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: var(--font-mono);
+      font-size: 0.8375rem;
+      line-height: 1.9;
+      color: var(--ink);
+      padding: 1.25rem 1.5rem;
+      caret-color: var(--red);
+    }
+
+    .pane-preview {
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-content {
+      padding: 1.5rem 2rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* ── Title block (matches LaTeX \begin{center} layout) ─────────────── */
+    .pdf-title-block {
+      text-align: center;
+      padding: 2rem 0 1rem;
+    }
+
+    .pdf-title-text {
+      font-family: 'CMU Serif', 'Computer Modern', Georgia, serif;
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--ink);
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+
+    .pdf-title-author {
+      font-family: 'CMU Serif', 'Computer Modern', Georgia, serif;
+      font-size: 1rem;
+      color: var(--ink);
+      margin-bottom: 0.25rem;
+    }
+
+    .pdf-title-date {
+      font-family: 'CMU Serif', 'Computer Modern', Georgia, serif;
+      font-size: 0.875rem;
+      color: var(--gray);
+    }
+
+    .pdf-title-rule {
+      border: none;
+      border-top: 1px solid var(--cream);
+      margin: 0 0 1.5rem;
+    }
+
+    /* ── Preview typography (Computer Modern — matches paper PDF output) ── */
+    .preview-content {
+      font-family: 'CMU Serif', 'Computer Modern', Georgia, serif;
+    }
+
+    .preview-content h1 {
+      font-family: 'CMU Serif', 'Computer Modern', Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: bold;
+      color: var(--ink);
+      margin-bottom: 0.25rem;
+      margin-top: 1.5rem;
+    }
+
+    .preview-content h1:first-child { margin-top: 0; }
+
+    .preview-content h2 {
+      font-family: 'CMU Serif', 'Computer Modern', Georgia, serif;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--ink);
+      margin-top: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .preview-content h3 {
+      font-family: 'CMU Serif', 'Computer Modern', Georgia, serif;
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--ink);
+      margin-top: 1.25rem;
+      margin-bottom: 0.375rem;
+    }
+
+    .preview-content p {
+      font-size: 0.9375rem;
+      line-height: 1.85;
+      color: #2A2A28;
+      margin-bottom: 1rem;
+    }
+
+    .preview-content ul,
+    .preview-content ol {
+      font-size: 0.9375rem;
+      line-height: 1.85;
+      color: #2A2A28;
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+
+    .preview-content li { margin-bottom: 0.25rem; }
+
+    .preview-content code {
+      font-family: 'CMU Typewriter Text', 'Courier New', monospace;
+      font-size: 0.85rem;
+      background: var(--cream);
+      padding: 0.1em 0.35em;
+      border-radius: 2px;
+      color: var(--ink);
+    }
+
+    .preview-content pre {
+      background: var(--ink);
+      color: #E0DDD6;
+      font-family: 'CMU Typewriter Text', 'Courier New', monospace;
+      font-size: 0.875rem;
+      line-height: 1.75;
+      padding: 1.5rem 2rem;
+      border-radius: 3px;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+    }
+
+    .preview-content pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+    }
+
+    .preview-content blockquote {
+      border-left: 3px solid var(--red);
+      margin: 1rem 0;
+      padding: 0.25rem 1rem;
+      color: var(--gray);
+      font-style: italic;
+    }
+
+    .preview-content hr {
+      border: none;
+      border-top: 1px solid var(--cream);
+      margin: 1.5rem 0;
+      width: 100%;
+    }
+
+    .preview-content a { color: var(--red); text-decoration: underline; }
+
+    .preview-content table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'CMU Typewriter Text', 'Courier New', monospace;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .preview-content th {
+      background: var(--cream);
+      font-weight: bold;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #D8D4CC;
+    }
+
+    .preview-content td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--cream);
+      color: #2A2A28;
+    }
+
+    /* ── Status bar ──────────────────────────── */
+    .statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 1.5rem;
+      padding: 0.375rem 1.5rem;
+      border-top: 1px solid var(--cream);
+      font-size: 0.6875rem;
+      color: var(--gray);
+      flex-shrink: 0;
+    }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 640px) {
+      .editor-area { grid-template-columns: 1fr; }
+      .pane-preview { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="../docs/index.html" class="toolbar-logo">paper<span>.</span></a>
+    <div class="toolbar-right">
+      <input class="filename-input" id="filename" type="text" value="document.md" spellcheck="false">
+      <button class="btn btn-open" id="btn-open">Open</button>
+      <button class="btn btn-save" id="btn-save">Save</button>
+    </div>
+  </div>
+
+  <div class="editor-area">
+    <div class="pane pane-source">
+      <span class="pane-label">Markdown</span>
+      <textarea class="editor-textarea" id="editor" spellcheck="false" placeholder="Start writing…"></textarea>
+    </div>
+    <div class="pane pane-preview">
+      <span class="pane-label">Preview</span>
+      <div class="preview-content" id="preview"></div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <span id="stat-words">0 words</span>
+    <span id="stat-chars">0 chars</span>
+    <span id="stat-lines">0 lines</span>
+  </div>
+
+  <input type="file" id="file-input" accept=".md,.txt" style="display:none">
+
+  <script>
+    const editor   = document.getElementById('editor');
+    const preview  = document.getElementById('preview');
+    const filename = document.getElementById('filename');
+    const statWords = document.getElementById('stat-words');
+    const statChars = document.getElementById('stat-chars');
+    const statLines = document.getElementById('stat-lines');
+    const fileInput = document.getElementById('file-input');
+
+    const DEFAULT = `---
+title: My Document
+author: Your Name
+date: ${new Date().toISOString().slice(0,10)}
+---
+
+# My Document
+
+## Introduction
+
+Write your content here. Markdown is rendered live on the right.
+
+## Features
+
+- **Bold** and *italic* text
+- \`inline code\`
+- [Links](https://github.com/mrsauravsahu/paper)
+
+## Code
+
+\`\`\`bash
+paper document.md -o document.pdf
+\`\`\`
+
+---
+
+> A quote looks like this.
+`;
+
+    function parseFrontMatter(text) {
+      const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+      if (!match) return { meta: {}, body: text };
+      const raw = match[1];
+      const meta = {};
+      raw.split('\n').forEach(line => {
+        const m = line.match(/^(\w+):\s*(.+)/);
+        if (m) meta[m[1].trim()] = m[2].trim();
+      });
+      return { meta, body: text.slice(match[0].length) };
+    }
+
+    function renderTitleBlock(meta) {
+      if (!meta.title && !meta.author) return '';
+      const title  = meta.title  ? `<div class="pdf-title-text">${meta.title}</div>` : '';
+      const author = meta.author ? `<div class="pdf-title-author">${meta.author}</div>` : '';
+      const date   = meta.date   ? `<div class="pdf-title-date">${meta.date}</div>` : '';
+      return `<div class="pdf-title-block">${title}${author}${date}</div>`;
+    }
+
+    function render() {
+      const { meta, body } = parseFrontMatter(editor.value);
+      preview.innerHTML = renderTitleBlock(meta) + marked.parse(body);
+      const text = editor.value;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      statWords.textContent = `${words} word${words !== 1 ? 's' : ''}`;
+      statChars.textContent = `${text.length} char${text.length !== 1 ? 's' : ''}`;
+      statLines.textContent = `${text.split('\n').length} lines`;
+    }
+
+    async function save() {
+      const btn = document.getElementById('btn-save');
+      btn.textContent = 'Saving…';
+      try {
+        const res = await fetch('http://localhost:3000/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filename.value || 'document.md', content: editor.value }),
+        });
+        const { saved, error } = await res.json();
+        if (error) throw new Error(error);
+        btn.textContent = 'Saved ✓';
+        setTimeout(() => btn.textContent = 'Save', 2000);
+      } catch (e) {
+        btn.textContent = 'Error';
+        setTimeout(() => btn.textContent = 'Save', 2000);
+        console.error(e);
+      }
+    }
+
+    function open() {
+      fileInput.click();
+    }
+
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      filename.value = file.name;
+      const reader = new FileReader();
+      reader.onload = ev => { editor.value = ev.target.result; render(); };
+      reader.readAsText(file);
+      fileInput.value = '';
+    });
+
+    editor.addEventListener('input', render);
+    document.getElementById('btn-save').addEventListener('click', save);
+    document.getElementById('btn-open').addEventListener('click', open);
+
+    // Tab key inserts spaces instead of moving focus
+    editor.addEventListener('keydown', e => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editor.selectionStart;
+        const end   = editor.selectionEnd;
+        editor.value = editor.value.slice(0, start) + '  ' + editor.value.slice(end);
+        editor.selectionStart = editor.selectionEnd = start + 2;
+        render();
+      }
+    });
+
+    editor.value = DEFAULT;
+    render();
+  </script>
+
+</body>
+</html>

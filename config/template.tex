@@ -217,6 +217,14 @@ $if(verbatim-in-note)$
 \usepackage{fancyvrb}
 $endif$
 \usepackage{xcolor}
+% Paper project colour palette
+\definecolor{paperink}{HTML}{1A1A18}
+\definecolor{paperred}{HTML}{C8102E}
+\definecolor{papergray}{HTML}{8C8678}
+\definecolor{papercream}{HTML}{EDE9E0}
+\definecolor{papercodebg}{HTML}{1A1A18}
+\definecolor{papercodetext}{HTML}{E0DDD6}
+\usepackage{mdframed}
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
 \hypersetup{
@@ -235,15 +243,11 @@ $endif$
 $if(keywords)$
   pdfkeywords={$for(keywords)$$keywords$$sep$, $endfor$},
 $endif$
-$if(colorlinks)$
   colorlinks=true,
-  linkcolor=$if(linkcolor)$$linkcolor$$else$Maroon$endif$,
-  filecolor=$if(filecolor)$$filecolor$$else$Maroon$endif$,
-  citecolor=$if(citecolor)$$citecolor$$else$Blue$endif$,
-  urlcolor=$if(urlcolor)$$urlcolor$$else$Blue$endif$,
-$else$
-  hidelinks,
-$endif$
+  linkcolor=$if(linkcolor)$$linkcolor$$else$paperred$endif$,
+  filecolor=$if(filecolor)$$filecolor$$else$paperred$endif$,
+  citecolor=$if(citecolor)$$citecolor$$else$paperred$endif$,
+  urlcolor=$if(urlcolor)$$urlcolor$$else$paperred$endif$,
   pdfcreator={LaTeX via pandoc}}
 \urlstyle{same} % disable monospaced font for URLs
 $if(verbatim-in-note)$
@@ -300,6 +304,7 @@ $endif$
 $endif$
 $if(graphics)$
 \usepackage{graphicx,grffile}
+\usepackage{xcolor}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
 \def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
@@ -307,7 +312,14 @@ $if(graphics)$
 % Scale images if necessary, so that they will not overflow the page
 % margins by default, and it is still possible to overwrite the defaults
 % using explicit options in \includegraphics[width, height, ...]{}
-\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\setkeys{Gin}{width=\linewidth,height=\maxheight,keepaspectratio}
+% Wrap all figures with a 1pt grey border
+\usepackage{etoolbox}
+\AtBeginEnvironment{figure}{\setlength{\fboxsep}{0pt}\setlength{\fboxrule}{0.5pt}\renewcommand{\includegraphics}[2][]{\fcolorbox{lightgray}{white}{\Oldincludegraphics[##1]{##2}}}}
+\makeatletter
+\let\Oldincludegraphics\includegraphics
+\renewcommand{\includegraphics}[2][]{\fcolorbox{lightgray}{white}{\Oldincludegraphics[##1]{##2}}}
+\makeatother
 % Set default figure placement to htbp
 \makeatletter
 \def\fps@figure{htbp}
@@ -455,51 +467,44 @@ $endif$
 \usepackage{fvextra}
 \fvset{breaklines=true}
 
-\definecolor{codebgcolor}{cmyk}{0,0.01,0.1,0}
+\definecolor{codebgcolor}{HTML}{1A1A18}
 
-% Note: redefining the Verbatim environment to have a background
-% I used `latexdef -E itemize` and `latexdef -E enumerate` to
-% discover the internal variables they use to control indentation.
-% Then I used `\leftmargin` to know how much each indentation
-% level indents, and added a negative horizontal spacing `\hspace`.
-% ref: [The definitions of LaTeX commands](https://texfaq.org/FAQ-ltxcmds)
-% ref: https://tex.stackexchange.com/questions/62202/change-background-colour-of-verbatim-environment
+% Code blocks: dark background, light text, even padding
 \makeatletter
 \let\oldv\Verbatim
 \def\Verbatim{%
   \setbox0\vbox\bgroup\oldv%
 }
-
-$if(full-width-codeblock)$$else$
-% == indented nested Verbatim ==
-% ref: https://tex.stackexchange.com/questions/426736/addition-multiplication-of-parameter-and-constant-with-unit
-\def\unindent{\hspace{-\dimexpr\leftmargin*(\@itemdepth+\@enumdepth)\relax}}
 \let\oldendv\endVerbatim
 \def\endVerbatim{%
-  \oldendv\egroup\fboxsep0pt \colorbox{codebgcolor}{%
-    \parbox{\linewidth}{%
-      \unindent\usebox0%
+  \oldendv\egroup%
+  \setlength{\fboxsep}{12pt}%
+  \noindent\colorbox{codebgcolor}{%
+    \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+      \setlength{\parskip}{0pt}%
+      \color{papercodetext}\usebox0\vspace{6pt}%
     }%
-  }%
+  }\par%
 }
-$endif$
-$if(full-width-codeblock)$
-% == full width nested Verbatim ==
-% ref: https://tex.stackexchange.com/questions/131637/no-indentation-for-non-item-within-itemize
-\newcommand\NoIndent[1]{%
-	\begingroup\par\parshape0#1\par\endgroup%
-}
-\let\oldendv\endVerbatim
-\def\endVerbatim{%
-  \oldendv\egroup\fboxsep0pt \NoIndent{%
-    \colorbox{codebgcolor}{%
-      \usebox0%
-    }%
-  }%
-}
-$endif$
-
 \makeatother
+
+% Links: underline in addition to red color
+\let\oldhref\href
+\renewcommand{\href}[2]{\oldhref{#1}{\underline{#2}}}
+
+% Full-width horizontal rules (pandoc renders --- as \rule{0.5\linewidth}{...})
+\let\OldRule\rule
+\renewcommand{\rule}[2]{\noindent\OldRule{\linewidth}{#2}}
+
+% Blockquote: red left bar, gray italic text via framed
+\usepackage{framed}
+\renewenvironment{quote}{%
+  \def\FrameCommand{{\color{paperred}\vrule width 3pt}\hspace{10pt}}%
+  \MakeFramed{\advance\hsize-\width\FrameRestore}%
+  \color{papergray}\itshape
+}{%
+  \endMakeFramed
+}
 
 % Note: this is used to remove indentation that Pandoc
 % adds when it renders nested enumerations/listings.
@@ -514,12 +519,22 @@ $if(has-frontmatter)$
 \frontmatter
 $endif$
 $if(title)$
-$if(show-title)$
 $if(beamer)$
 \frame{\titlepage}
 $else$
-\maketitle
+\begin{center}
+{\Huge $title$}
+$if(author)$
+
+\vspace{0.25em}
+{\large $for(author)$$author$$sep$, $endfor$}
 $endif$
+$if(date)$
+
+\vspace{0.15em}
+{\normalsize $date$}
+$endif$
+\end{center}
 $endif$
 $if(abstract)$
 \begin{abstract}

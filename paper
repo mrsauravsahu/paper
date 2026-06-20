@@ -27,12 +27,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --breaks=no)
       ;;
-    --title=yes)
-      PANDOC_VARS="$PANDOC_VARS -V show-title=true"
-      ;;
-    --title=no)
-      ;;
-    --pages=yes)
+--pages=yes)
       PANDOC_VARS="$PANDOC_VARS -V show-page-numbers=true"
       ;;
     --pages=no)
@@ -92,6 +87,7 @@ fi
 echo "Generating PDF..."
 docker run --rm \
   -v "$INPUT_DIR:/input" \
+  -v "$SCRIPT_DIR/config:/paper/config" \
   $DOCKER_OUTPUT_MOUNT \
   -e MERMAID_FILTER_FORMAT=pdf \
   paper:latest bash -c \
