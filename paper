@@ -67,6 +67,11 @@ if [ -z "$INPUT" ]; then
   exit 1
 fi
 
+if [ ! -f "$INPUT" ]; then
+  echo "error: input file not found: $INPUT" >&2
+  exit 1
+fi
+
 if [ -z "$OUTPUT" ] && ! $NO_OPEN; then
   echo "Specify -o <output.pdf> to save the PDF, or -n to check generation only." >&2
   echo "$USAGE" >&2
