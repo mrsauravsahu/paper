@@ -5,3 +5,4 @@ id,description,command,check
 4,equals syntax --output= - pdf must appear at specified path,paper tests/with-output-eq-flag.md -n --output=tests/out-output-eq-flag.pdf,test -f tests/out-output-eq-flag.pdf
 5,unicode arrows ▼ ▲ - pdf must be produced without LaTeX error,paper tests/unicode-arrows.md -n -o tests/out-unicode-arrows.pdf,test -f tests/out-unicode-arrows.pdf
 6,missing input file - must exit with error before invoking docker,paper tests/nonexistent-file.md -n,! test -f tests/nonexistent-file.pdf
+7,mermaid custom themes and fonts - pdf must be produced,paper tests/mermaid-custom-theme.md -n -o tests/out-mermaid-custom-theme.pdf,test -f tests/out-mermaid-custom-theme.pdf
