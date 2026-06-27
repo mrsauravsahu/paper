@@ -14,7 +14,7 @@ PANDOC_VARS=""
 VERBOSE=false
 NO_OPEN=false
 
-USAGE="Usage: paper <file.md> -o <output.pdf> | -n [--continuous] [--breaks=yes|no] [--title=yes|no] [--pages=yes|no] [-v]"
+USAGE="Usage: paper <file.md> [-o <output.pdf>] [-n] [--continuous] [--breaks=yes|no] [--title=yes|no] [--pages=yes|no] [-v]"
 
 while [[ $# -gt 0 ]]; do
   arg="$1"
@@ -72,17 +72,15 @@ if [ ! -f "$INPUT" ]; then
   exit 1
 fi
 
-if [ -z "$OUTPUT" ] && ! $NO_OPEN; then
-  echo "Specify -o <output.pdf> to save the PDF, or -n to check generation only." >&2
-  echo "$USAGE" >&2
-  exit 1
-fi
-
 $VERBOSE && set -x
 
 INPUT_DIR="$(cd "$(dirname "$INPUT")" && pwd)"
 INPUT_BASENAME="$(basename "$INPUT")"
 OUTPUT_BASENAME="${INPUT_BASENAME%.md}.pdf"
+
+if [ -z "$OUTPUT" ] && ! $NO_OPEN; then
+  OUTPUT="$INPUT_DIR/$OUTPUT_BASENAME"
+fi
 
 if [ -n "$OUTPUT" ]; then
   OUTPUT_PATH="$(cd "$(dirname "$OUTPUT")" && pwd)/$(basename "$OUTPUT")"
