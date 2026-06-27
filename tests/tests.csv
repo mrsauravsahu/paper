@@ -3,3 +3,4 @@ id,description,command,check
 2,short flag -o - pdf must appear at specified path,paper tests/with-o-flag.md -n -o tests/out-o-flag.pdf,test -f tests/out-o-flag.pdf
 3,long flag --output - pdf must appear at specified path,paper tests/with-output-flag.md -n --output tests/out-output-flag.pdf,test -f tests/out-output-flag.pdf
 4,equals syntax --output= - pdf must appear at specified path,paper tests/with-output-eq-flag.md -n --output=tests/out-output-eq-flag.pdf,test -f tests/out-output-eq-flag.pdf
+5,unicode arrows ▼ ▲ - pdf must be produced without LaTeX error,paper tests/unicode-arrows.md -n -o tests/out-unicode-arrows.pdf,test -f tests/out-unicode-arrows.pdf
