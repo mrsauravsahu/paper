@@ -43,6 +43,29 @@ Then symlink the `paper` script into a directory on your `$PATH`:
 ln -sf $HOME/paper/paper $HOME/.local/bin/paper
 ```
 
+### What is in the image
+
+The image is assembled from components rather than a prebuilt pandoc/TeX base,
+in four stages:
+
+| Component | Source | Why |
+|---|---|---|
+| `pandoc` | upstream `.deb` release | Markdown → LaTeX |
+| `pdflatex` | TeX Live `scheme-infraonly` + only the packages `config/template.tex` loads | LaTeX → PDF |
+| `node` + `node_modules` | NodeSource, `npm ci --omit=dev` | the pandoc filters in `src/` |
+| `rsvg-convert` | Debian `librsvg2-bin` | emoji SVG → PDF |
+
+That default image is about 250 MB. Mermaid diagrams additionally need a
+browser, which costs roughly 1 GB, so chromium is opt-in:
+
+```sh
+docker build --build-arg WITH_CHROMIUM=1 -t paper:latest .
+```
+
+Without it, documents containing mermaid code blocks will fail to render. The
+`paper` script only loads the mermaid filter when the document actually
+contains such a block, so the default image handles everything else.
+
 ### Publishing the image
 
 `.github/workflows/docker.yml` builds and pushes to GHCR on every push to `main`

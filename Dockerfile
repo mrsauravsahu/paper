@@ -1,59 +1,119 @@
 # syntax=docker/dockerfile:1
+#
+# Built from components rather than a prebuilt pandoc/TeX base image:
+#   - pandoc          upstream .deb release (~30 MB)
+#   - pdflatex        TeX Live scheme-infraonly + only the packages template.tex loads
+#   - node            for the emoji / mermaid pandoc filters in src/
+# Each is assembled in its own stage; the runtime image copies in only the
+# finished trees, so no installers, caches or package indexes are committed.
 
-# ---- Stage 1: node dependencies ------------------------------------------
-# Built separately so npm's cache, lockfile and dev tooling never reach the
-# runtime image — only the resolved node_modules tree is copied forward.
-FROM --platform=linux/amd64 node:20-bookworm-slim AS deps
+ARG DEBIAN=debian:bookworm-slim
+ARG NODE_VERSION=20
+ARG PANDOC_VERSION=3.1.11.1
 
+# ---- Stage: pandoc --------------------------------------------------------
+FROM ${DEBIAN} AS pandoc
+ARG PANDOC_VERSION
+ARG TARGETARCH
+RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";' > /etc/apt/apt.conf.d/99retries
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && curl -fsSL -o /tmp/pandoc.deb \
+      "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-1-${TARGETARCH}.deb" \
+ && dpkg -x /tmp/pandoc.deb /pandoc-root \
+ && rm -rf /tmp/pandoc.deb /var/lib/apt/lists/*
+
+# ---- Stage: texlive -------------------------------------------------------
+# scheme-infraonly is the smallest installable scheme; every LaTeX package
+# below is one that config/template.tex actually \usepackage's (or is a
+# dependency of one). Docs and sources are skipped.
+FROM ${DEBIAN} AS texlive
+ARG TARGETARCH
+RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";' > /etc/apt/apt.conf.d/99retries
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates curl perl fontconfig xz-utils \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp/install-tl
+RUN curl -fsSL https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz \
+      | tar xz --strip-components=1 \
+ && printf '%s\n' \
+      'selected_scheme scheme-infraonly' \
+      'TEXDIR /opt/texlive' \
+      'TEXMFLOCAL /opt/texlive/texmf-local' \
+      'TEXMFSYSVAR /opt/texlive/texmf-var' \
+      'TEXMFSYSCONFIG /opt/texlive/texmf-config' \
+      'TEXMFHOME ~/texmf' \
+      'option_doc 0' \
+      'option_src 0' \
+      > texlive.profile \
+ && ./install-tl --profile=texlive.profile \
+ && rm -rf /tmp/install-tl
+
+ENV PATH=/opt/texlive/bin/aarch64-linux:/opt/texlive/bin/x86_64-linux:$PATH
+
+RUN tlmgr install \
+      latex latex-bin latexconfig tex-ini-files \
+      amsfonts amsmath booktabs caption ec etoolbox fancyhdr fancyvrb \
+      fvextra geometry graphics graphics-cfg graphics-def grffile \
+      hyperref iftex l3kernel l3packages lineno listings lm microtype newunicodechar parskip pdftexcmds pgf pmboxdraw \
+      setspace titlesec tools ulem upquote url xcolor xkeyval xurl \
+      footnotehyper footmisc infwarerr kvoptions kvsetkeys ltxcmds \
+      epstopdf-pkg auxhook bigintcalc bitset etexcmds gettitlestring \
+      hycolor intcalc kvdefinekeys letltxmacro pdfescape refcount \
+      rerunfilecheck stringenc uniquecounter zapfding symbol \
+ && fmtutil-sys --byfmt pdflatex \
+ && rm -rf /opt/texlive/texmf-dist/doc /opt/texlive/texmf-var/web2c/*.log
+
+# ---- Stage: node dependencies ---------------------------------------------
+FROM node:${NODE_VERSION}-bookworm-slim AS deps
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
     NPM_CONFIG_FUND=false
-
 WORKDIR /paper
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --no-audit
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --no-audit
 
-# ---- Stage 2: runtime -----------------------------------------------------
-FROM --platform=linux/amd64 ms609/pandoc:latest AS runtime
+# ---- Stage: runtime -------------------------------------------------------
+FROM ${DEBIAN} AS runtime
+ARG NODE_VERSION
+# Chromium is only used to rasterise mermaid diagrams, and costs ~1 GB.
+# It is opt-in; build with --build-arg WITH_CHROMIUM=1 if your documents
+# contain mermaid blocks.
+ARG WITH_CHROMIUM=0
+RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";' > /etc/apt/apt.conf.d/99retries
 
-ARG CHROME_DEB=https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-# Node runtime, SVG/PDF converters and headless Chrome for mermaid diagrams.
-# Single layer, --no-install-recommends, apt lists and the .deb removed in the
-# same layer so none of it is committed to the image.
+# librsvg2-bin gives rsvg-convert for emoji SVG -> PDF (replaces inkscape).
+# Chromium is only needed for mermaid diagrams; see MERMAID note in README.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates wget \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y --no-install-recommends \
-        nodejs \
-        librsvg2-bin \
-        inkscape \
-        fonts-liberation \
-        libgbm1 \
-        libu2f-udev \
-        libvulkan1 \
-    && wget -q -O /tmp/chrome.deb "$CHROME_DEB" \
-    && apt-get install -y --no-install-recommends /tmp/chrome.deb \
-    && rm -f /tmp/chrome.deb \
-    && apt-get purge -y --auto-remove wget \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb \
-              /usr/share/doc/* /usr/share/man/* /root/.npm /tmp/*
+ && apt-get install -y --no-install-recommends \
+      ca-certificates perl librsvg2-bin fontconfig \
+ && if [ "$WITH_CHROMIUM" = "1" ]; then \
+      apt-get install -y --no-install-recommends chromium fonts-liberation; \
+    fi \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* /usr/share/doc/* /usr/share/man/* /root/.npm /tmp/*
+
+# Node comes straight from the official image; the NodeSource apt repo would
+# pull gnupg and python into the runtime layer for no benefit.
+COPY --from=deps    /usr/local/bin/node                /usr/local/bin/node
+COPY --from=pandoc  /pandoc-root/usr/bin/pandoc        /usr/bin/pandoc
+COPY --from=texlive /opt/texlive       /opt/texlive
+ENV PATH=/opt/texlive/bin/aarch64-linux:/opt/texlive/bin/x86_64-linux:$PATH
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
     MERMAID_FILTER_PUPPETEER_CONFIG=/paper/config/puppeteer-config.json \
     MERMAID_FILTER_FORMAT=pdf
 
 WORKDIR /paper
-
 COPY --from=deps /paper/node_modules ./node_modules
 COPY config/ config/
 COPY src/ src/
 
 LABEL org.opencontainers.image.title="paper" \
-      org.opencontainers.image.description="Render Markdown to a styled PDF via pandoc, LaTeX, mermaid and twemoji" \
+      org.opencontainers.image.description="Render Markdown to a styled PDF via pandoc, pdflatex and twemoji" \
       org.opencontainers.image.source="https://github.com/mrsauravsahu/paper" \
       org.opencontainers.image.licenses="MIT"
 

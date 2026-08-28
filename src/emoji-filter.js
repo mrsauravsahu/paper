@@ -28,7 +28,12 @@ function wait_debugger() {
 	while(!f._r){t=hr();debugger;if(hr()-t>100000000)f._r=true}
 }
 
-const inkscape_path = shell.which("inkscape").stdout.split("\n")[0].trim()
+// Prefer rsvg-convert (a few MB); fall back to inkscape (hundreds of MB) when
+// it is the only converter available on the host.
+const converter = ["rsvg-convert", "inkscape"].map(bin => shell.which(bin)).find(Boolean)
+if (!converter) throw new Error("neither rsvg-convert nor inkscape found on PATH")
+const converter_path = converter.stdout.split("\n")[0].trim()
+const converter_name = path.basename(converter_path)
 
 function imageSourceGenerator(icon, options) {
 	return icon
@@ -38,7 +43,9 @@ function svg_to_pdf(src) {
 	const full_target = path.join(process.cwd(), src.replace(/\.svg$/, ".pdf"))
 	const full_src = path.join(process.cwd(), src)
   if(fs.readFileSync(full_src, 'utf8').trim() === "") return null
-	const cmd_line = `"${inkscape_path}" --export-type=pdf "${full_target}" "${full_src}"`
+	const cmd_line = converter_name === "rsvg-convert"
+		? `"${converter_path}" -f pdf -o "${full_target}" "${full_src}"`
+		: `"${converter_path}" --export-type=pdf "${full_target}" "${full_src}"`
 	if (!fs.existsSync(full_target))
 		shell.exec(cmd_line)
 	return full_target
