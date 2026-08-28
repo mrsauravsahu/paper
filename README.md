@@ -30,12 +30,20 @@ cd $HOME/paper
 docker build -t paper:latest .
 ```
 
-Or pull a prebuilt image instead of building:
+Or pull a prebuilt image instead of building. Two variants are published —
+pick the light one unless your documents contain mermaid diagrams:
 
 ```sh
+# ~220 MB, everything except mermaid
 docker pull ghcr.io/mrsauravsahu/paper:latest
 docker tag ghcr.io/mrsauravsahu/paper:latest paper:latest
+
+# ~460 MB, bundles chromium for mermaid diagrams
+docker pull ghcr.io/mrsauravsahu/paper:latest-mermaid
+docker tag ghcr.io/mrsauravsahu/paper:latest-mermaid paper:latest
 ```
+
+Either way the script expects the image tagged `paper:latest` locally.
 
 Then symlink the `paper` script into a directory on your `$PATH`:
 
@@ -52,11 +60,11 @@ in four stages:
 |---|---|---|
 | `pandoc` | upstream `.deb` release | Markdown → LaTeX |
 | `pdflatex` | TeX Live `scheme-infraonly` + only the packages `config/template.tex` loads | LaTeX → PDF |
-| `node` + `node_modules` | NodeSource, `npm ci --omit=dev` | the pandoc filters in `src/` |
+| `node` + `node_modules` | official node image, `npm ci --omit=dev` | the pandoc filters in `src/` |
 | `rsvg-convert` | Debian `librsvg2-bin` | emoji SVG → PDF |
 
-That default image is about 250 MB. Mermaid diagrams additionally need a
-browser, which costs roughly 1 GB, so chromium is opt-in:
+That default image is about 220 MB. Mermaid diagrams additionally need a
+browser, which adds roughly 240 MB, so chromium is opt-in:
 
 ```sh
 docker build --build-arg WITH_CHROMIUM=1 -t paper:latest .

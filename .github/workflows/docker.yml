@@ -12,6 +12,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - suffix: ""
+            with_chromium: "0"
+          - suffix: "-mermaid"
+            with_chromium: "1"
     steps:
       - uses: actions/checkout@v4
 
@@ -23,10 +30,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Two variants so users can pick by need: the default is ~220 MB and
+      # renders everything except mermaid; the -mermaid tag bundles chromium
+      # (~240 MB more) for documents with mermaid diagrams.
       - id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          flavor: |
+            suffix=${{ matrix.suffix }},onlatest=true
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -37,6 +49,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            WITH_CHROMIUM=${{ matrix.with_chromium }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
