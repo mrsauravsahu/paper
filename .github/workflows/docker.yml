@@ -16,9 +16,9 @@ jobs:
       matrix:
         include:
           - suffix: ""
-            with_chromium: "0"
-          - suffix: "-mermaid"
             with_chromium: "1"
+          - suffix: "-slim"
+            with_chromium: "0"
     steps:
       - uses: actions/checkout@v4
 
@@ -30,9 +30,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Two variants so users can pick by need: the default is ~220 MB and
-      # renders everything except mermaid; the -mermaid tag bundles chromium
-      # (~240 MB more) for documents with mermaid diagrams.
+      # Two variants so users can pick by need: the default tag bundles
+      # chromium so every feature works out of the box (~460 MB); the -slim
+      # tag drops it (~220 MB) for documents with no mermaid diagrams.
       - id: meta
         uses: docker/metadata-action@v5
         with:

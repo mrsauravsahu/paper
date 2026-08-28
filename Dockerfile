@@ -78,10 +78,10 @@ RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --no-audit
 # ---- Stage: runtime -------------------------------------------------------
 FROM ${DEBIAN} AS runtime
 ARG NODE_VERSION
-# Chromium is only used to rasterise mermaid diagrams, and costs ~1 GB.
-# It is opt-in; build with --build-arg WITH_CHROMIUM=1 if your documents
-# contain mermaid blocks.
-ARG WITH_CHROMIUM=0
+# Chromium is only used to rasterise mermaid diagrams and adds ~240 MB. It is
+# on by default so every feature works out of the box; build with
+# --build-arg WITH_CHROMIUM=0 for a smaller image if you never use mermaid.
+ARG WITH_CHROMIUM=1
 RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";' > /etc/apt/apt.conf.d/99retries
 
 # librsvg2-bin gives rsvg-convert for emoji SVG -> PDF (replaces inkscape).

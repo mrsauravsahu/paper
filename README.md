@@ -30,17 +30,18 @@ cd $HOME/paper
 docker build -t paper:latest .
 ```
 
-Or pull a prebuilt image instead of building. Two variants are published —
-pick the light one unless your documents contain mermaid diagrams:
+Or pull a prebuilt image instead of building. Two variants are published; the
+default supports every feature, and `-slim` trades mermaid for a smaller
+download:
 
 ```sh
-# ~220 MB, everything except mermaid
+# ~460 MB, all features including mermaid diagrams
 docker pull ghcr.io/mrsauravsahu/paper:latest
 docker tag ghcr.io/mrsauravsahu/paper:latest paper:latest
 
-# ~460 MB, bundles chromium for mermaid diagrams
-docker pull ghcr.io/mrsauravsahu/paper:latest-mermaid
-docker tag ghcr.io/mrsauravsahu/paper:latest-mermaid paper:latest
+# ~220 MB, everything except mermaid
+docker pull ghcr.io/mrsauravsahu/paper:latest-slim
+docker tag ghcr.io/mrsauravsahu/paper:latest-slim paper:latest
 ```
 
 Either way the script expects the image tagged `paper:latest` locally.
@@ -63,16 +64,16 @@ in four stages:
 | `node` + `node_modules` | official node image, `npm ci --omit=dev` | the pandoc filters in `src/` |
 | `rsvg-convert` | Debian `librsvg2-bin` | emoji SVG → PDF |
 
-That default image is about 220 MB. Mermaid diagrams additionally need a
-browser, which adds roughly 240 MB, so chromium is opt-in:
+That default image is about 460 MB, most of which is the chromium needed to
+rasterise mermaid diagrams. Drop it for a ~220 MB image if you never use them:
 
 ```sh
-docker build --build-arg WITH_CHROMIUM=1 -t paper:latest .
+docker build --build-arg WITH_CHROMIUM=0 -t paper:latest .
 ```
 
-Without it, documents containing mermaid code blocks will fail to render. The
-`paper` script only loads the mermaid filter when the document actually
-contains such a block, so the default image handles everything else.
+Only documents containing mermaid code blocks are affected. The `paper` script
+loads the mermaid filter only when the document actually contains such a block,
+so the slim image renders everything else normally.
 
 ### Publishing the image
 
