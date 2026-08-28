@@ -4,7 +4,7 @@ const path   = require('path');
 const os     = require('os');
 const { execFile } = require('child_process');
 
-const PORT      = 3000;
+const PORT      = process.env.PORT || 3000;
 const BASE_DIR  = path.join(os.homedir(), '.mrsauravsahu', 'paper');
 const SAVE_DIR  = path.join(BASE_DIR, 'examples');
 const PAPER_BIN = path.join(BASE_DIR, 'paper');
