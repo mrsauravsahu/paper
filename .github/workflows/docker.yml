@@ -1,6 +1,8 @@
 name: docker
 
-# Images are published on tags only — merging to main does not push anything.
+# Images are published on tags only — merging to main does not push anything,
+# and a manual workflow_dispatch run builds without publishing, so the
+# pipeline can be tested end to end without creating a release.
 # Tagging v0.1.0 publishes:
 #   ghcr.io/<repo>:0.1.0   and   ghcr.io/<repo>:latest
 #
@@ -45,6 +47,8 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
-          push: true
+          # Manual runs build only, so the pipeline can be exercised without
+          # publishing. Only a v* tag actually pushes to GHCR.
+          push: ${{ github.event_name != 'workflow_dispatch' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

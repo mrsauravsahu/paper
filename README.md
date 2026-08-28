@@ -89,6 +89,10 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
+To exercise the pipeline without releasing anything, run the workflow manually
+from the Actions tab — a `workflow_dispatch` run builds the image but does not
+push it.
+
 To publish by hand instead:
 
 ```sh
