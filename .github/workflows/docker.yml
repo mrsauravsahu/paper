@@ -5,13 +5,86 @@ name: docker
 #   ghcr.io/<repo>:0.1.0        full image, mermaid included
 #   ghcr.io/<repo>:latest       moved to that same full image
 #   ghcr.io/<repo>:0.1.0-slim   no chromium, ~220 MB
+#
+# Each architecture builds on its own native runner rather than under QEMU,
+# then the per-arch digests are merged into one multi-arch manifest.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
 
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
 jobs:
-  publish:
+  build:
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: full
+            with_chromium: "1"
+            platform: linux/amd64
+            arch: amd64
+            runner: ubuntu-latest
+          - variant: full
+            with_chromium: "1"
+            platform: linux/arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+          - variant: slim
+            with_chromium: "0"
+            platform: linux/amd64
+            arch: amd64
+            runner: ubuntu-latest
+          - variant: slim
+            with_chromium: "0"
+            platform: linux/arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Push by digest only; tags are applied later when the manifest is built.
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            WITH_CHROMIUM=${{ matrix.with_chromium }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.variant }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}-${{ matrix.arch }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.variant }}-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,17 +92,19 @@ jobs:
     strategy:
       matrix:
         include:
-          # The default variant bundles chromium so every feature works out of
-          # the box (~460 MB), and is the one `latest` points at.
-          - suffix: ""
-            with_chromium: "1"
+          # The full image is what `latest` points at.
+          - variant: full
+            suffix: ""
             latest: "true"
-          # -slim drops chromium (~220 MB) for documents with no mermaid.
-          - suffix: "-slim"
-            with_chromium: "0"
+          - variant: slim
+            suffix: "-slim"
             latest: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digests-${{ matrix.variant }}-*
+          merge-multiple: true
+          path: /tmp/digests
 
       - uses: docker/setup-buildx-action@v3
 
@@ -42,7 +117,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.IMAGE }}
           # latest=false so the tag list below is exactly what gets published;
           # onlatest=true keeps the suffix applied to any raw tag.
           flavor: |
@@ -52,14 +127,14 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=latest,enable=${{ matrix.latest == 'true' }}
 
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          build-args: |
-            WITH_CHROMIUM=${{ matrix.with_chromium }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.IMAGE }}@sha256:%s ' *)
+
+      - name: Inspect
+        run: |
+          docker buildx imagetools inspect \
+            "${{ env.IMAGE }}:$(jq -cr '.tags[0] | split(":")[1]' <<< "$DOCKER_METADATA_OUTPUT_JSON")"
