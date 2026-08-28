@@ -39,9 +39,9 @@ download:
 docker pull ghcr.io/mrsauravsahu/paper:latest
 docker tag ghcr.io/mrsauravsahu/paper:latest paper:latest
 
-# ~220 MB, everything except mermaid
-docker pull ghcr.io/mrsauravsahu/paper:latest-slim
-docker tag ghcr.io/mrsauravsahu/paper:latest-slim paper:latest
+# ~220 MB, everything except mermaid (versioned tags only)
+docker pull ghcr.io/mrsauravsahu/paper:0.1.0-slim
+docker tag ghcr.io/mrsauravsahu/paper:0.1.0-slim paper:latest
 ```
 
 Either way the script expects the image tagged `paper:latest` locally.
@@ -77,8 +77,21 @@ so the slim image renders everything else normally.
 
 ### Publishing the image
 
-`.github/workflows/docker.yml` builds and pushes to GHCR on every push to `main`
-and every `v*` tag. To publish by hand:
+Images are published on tags only — merging to `main` pushes nothing. Tagging
+`v0.1.0` publishes three images:
+
+| Tag | Contents |
+|---|---|
+| `ghcr.io/mrsauravsahu/paper:0.1.0` | full image, mermaid included |
+| `ghcr.io/mrsauravsahu/paper:latest` | moved to that same full image |
+| `ghcr.io/mrsauravsahu/paper:0.1.0-slim` | no chromium, ~220 MB |
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+To publish by hand instead:
 
 ```sh
 docker build -t ghcr.io/mrsauravsahu/paper:latest .

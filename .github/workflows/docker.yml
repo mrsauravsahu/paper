@@ -1,8 +1,12 @@
 name: docker
 
+# Images are published on tags only — merging to main does not push anything.
+# Tagging v0.1.0 publishes:
+#   ghcr.io/<repo>:0.1.0        full image, mermaid included
+#   ghcr.io/<repo>:latest       moved to that same full image
+#   ghcr.io/<repo>:0.1.0-slim   no chromium, ~220 MB
 on:
   push:
-    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
@@ -15,10 +19,15 @@ jobs:
     strategy:
       matrix:
         include:
+          # The default variant bundles chromium so every feature works out of
+          # the box (~460 MB), and is the one `latest` points at.
           - suffix: ""
             with_chromium: "1"
+            latest: "true"
+          # -slim drops chromium (~220 MB) for documents with no mermaid.
           - suffix: "-slim"
             with_chromium: "0"
+            latest: "false"
     steps:
       - uses: actions/checkout@v4
 
@@ -30,19 +39,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Two variants so users can pick by need: the default tag bundles
-      # chromium so every feature works out of the box (~460 MB); the -slim
-      # tag drops it (~220 MB) for documents with no mermaid diagrams.
       - id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          # latest=false so the tag list below is exactly what gets published;
+          # onlatest=true keeps the suffix applied to any raw tag.
           flavor: |
+            latest=false
             suffix=${{ matrix.suffix }},onlatest=true
           tags: |
-            type=ref,event=branch
             type=semver,pattern={{version}}
-            type=sha,format=short
+            type=raw,value=latest,enable=${{ matrix.latest == 'true' }}
 
       - uses: docker/build-push-action@v6
         with:
