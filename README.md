@@ -30,11 +30,30 @@ cd $HOME/paper
 docker build -t paper:latest .
 ```
 
+Or pull a prebuilt image instead of building:
+
+```sh
+docker pull ghcr.io/mrsauravsahu/paper:latest
+docker tag ghcr.io/mrsauravsahu/paper:latest paper:latest
+```
+
 Then symlink the `paper` script into a directory on your `$PATH`:
 
 ```sh
 ln -sf $HOME/paper/paper $HOME/.local/bin/paper
 ```
+
+### Publishing the image
+
+`.github/workflows/docker.yml` builds and pushes to GHCR on every push to `main`
+and every `v*` tag. To publish by hand:
+
+```sh
+docker build -t ghcr.io/mrsauravsahu/paper:latest .
+docker push ghcr.io/mrsauravsahu/paper:latest
+```
+
+For Docker Hub, retag to `<user>/paper:latest` and push to that instead.
 
 ## Usage
 

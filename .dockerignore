@@ -1,0 +1,15 @@
+.git
+.gitignore
+.claude
+.DS_Store
+node_modules
+npm-debug.log
+docs
+e2e
+editor
+examples
+tests
+repos
+*.pdf
+*.md
+!README.md
