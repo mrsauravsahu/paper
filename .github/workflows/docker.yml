@@ -66,8 +66,9 @@ jobs:
           build-args: |
             WITH_CHROMIUM=${{ matrix.with_chromium }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ matrix.variant }}-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}-${{ matrix.arch }}
+          # No GHA layer cache on purpose: releases are tag-only and usually
+          # more than 7 days apart, so the cache would be evicted before the
+          # next run anyway — it would just write GBs to expire unused.
 
       - name: Export digest
         run: |
