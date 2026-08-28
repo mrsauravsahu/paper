@@ -30,21 +30,16 @@ cd $HOME/paper
 docker build -t paper:latest .
 ```
 
-Or pull a prebuilt image instead of building. Two variants are published; the
-default supports every feature, and `-slim` trades mermaid for a smaller
-download:
+Or pull the prebuilt image instead of building. It supports every feature,
+mermaid included (~460 MB, `linux/amd64`):
 
 ```sh
-# ~460 MB, all features including mermaid diagrams
 docker pull ghcr.io/mrsauravsahu/paper:latest
 docker tag ghcr.io/mrsauravsahu/paper:latest paper:latest
-
-# ~220 MB, everything except mermaid (versioned tags only)
-docker pull ghcr.io/mrsauravsahu/paper:0.1.0-slim
-docker tag ghcr.io/mrsauravsahu/paper:0.1.0-slim paper:latest
 ```
 
-Either way the script expects the image tagged `paper:latest` locally.
+The script expects the image tagged `paper:latest` locally. If you want the
+smaller mermaid-free image, build it yourself — see below.
 
 Then symlink the `paper` script into a directory on your `$PATH`:
 
@@ -73,18 +68,21 @@ docker build --build-arg WITH_CHROMIUM=0 -t paper:latest .
 
 Only documents containing mermaid code blocks are affected. The `paper` script
 loads the mermaid filter only when the document actually contains such a block,
-so the slim image renders everything else normally.
+so a chromium-free build renders everything else normally.
 
 ### Publishing the image
 
 Images are published on tags only — merging to `main` pushes nothing. Tagging
-`v0.1.0` publishes three images:
+`v0.1.0` publishes:
 
 | Tag | Contents |
 |---|---|
 | `ghcr.io/mrsauravsahu/paper:0.1.0` | full image, mermaid included |
 | `ghcr.io/mrsauravsahu/paper:latest` | moved to that same full image |
-| `ghcr.io/mrsauravsahu/paper:0.1.0-slim` | no chromium, ~220 MB |
+
+`linux/amd64` only: one CI job runs on one architecture, and emulating arm64
+under QEMU would take 30-60 minutes for this image. Apple Silicon runs the
+amd64 image fine under Docker Desktop, or build locally for a native one.
 
 ```sh
 git tag v0.1.0

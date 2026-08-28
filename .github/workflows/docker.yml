@@ -2,9 +2,13 @@ name: docker
 
 # Images are published on tags only — merging to main does not push anything.
 # Tagging v0.1.0 publishes:
-#   ghcr.io/<repo>:0.1.0        full image, mermaid included
-#   ghcr.io/<repo>:latest       moved to that same full image
-#   ghcr.io/<repo>:0.1.0-slim   no chromium, ~220 MB
+#   ghcr.io/<repo>:0.1.0   and   ghcr.io/<repo>:latest
+#
+# linux/amd64 only, deliberately. A single job runs on a single architecture,
+# so covering arm64 here would mean emulating it under QEMU — 30-60 min for
+# this image, well over the 10 minute budget. To add arm64 later: either add a
+# second native job on ubuntu-24.04-arm and merge the digests, or accept the
+# slower build by adding docker/setup-qemu-action and listing both platforms.
 on:
   push:
     tags: ['v*']
@@ -13,29 +17,12 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # The default variant bundles chromium so every feature works out of
-          # the box (~460 MB), and is the one `latest` points at.
-          - suffix: ""
-            with_chromium: "1"
-            latest: "true"
-          # -slim drops chromium (~220 MB) for documents with no mermaid.
-          - suffix: "-slim"
-            with_chromium: "0"
-            latest: "false"
     steps:
       - uses: actions/checkout@v4
-
-      # Emulation for the linux/arm64 build. It is slow — the TeX format
-      # generation and chromium unpack are the costly parts — but this only
-      # runs on release tags.
-      - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3
 
@@ -49,21 +36,15 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
-          # latest=false so the tag list below is exactly what gets published;
-          # onlatest=true keeps the suffix applied to any raw tag.
-          flavor: |
-            latest=false
-            suffix=${{ matrix.suffix }},onlatest=true
+          flavor: latest=false
           tags: |
             type=semver,pattern={{version}}
-            type=raw,value=latest,enable=${{ matrix.latest == 'true' }}
+            type=raw,value=latest
 
       - uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
-          build-args: |
-            WITH_CHROMIUM=${{ matrix.with_chromium }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
