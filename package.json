@@ -9,6 +9,9 @@
     "shelljs": "^0.8.4",
     "twemoji": "^12.1.5"
   },
+  "overrides": {
+    "@mermaid-js/mermaid-cli": "11.4.0"
+  },
   "devDependencies": {},
   "scripts": {
     "test": "create-example.sh"
