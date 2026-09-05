@@ -7,3 +7,4 @@ id,description,command,check
 6,missing input file - must exit with error before invoking docker,paper tests/nonexistent-file.md -n,! test -f tests/nonexistent-file.pdf
 7,mermaid custom themes and fonts - pdf must be produced,paper tests/mermaid-custom-theme.md -n -o tests/out-mermaid-custom-theme.pdf,test -f tests/out-mermaid-custom-theme.pdf
 8,no -o flag - pdf must appear next to input with same basename,paper tests/default-output.md -n,test -f tests/default-output.pdf
+9,colour emoji - flags and ZWJ sequences must render with no missing characters,paper tests/colour-emoji.md -n -o tests/out-colour-emoji.pdf 2> tests/colour-emoji.log,test -f tests/out-colour-emoji.pdf && ! grep -q "Missing character" tests/colour-emoji.log

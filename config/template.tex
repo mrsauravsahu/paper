@@ -133,8 +133,31 @@ $else$
 $endif$
   \defaultfontfeatures{Scale=MatchLowercase}
   \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+  \ifluatex
+    % Colour emoji. NotoColorEmoji is a CBDT/CBLC bitmap font, which only
+    % renders through HarfBuzz -- hence mode=harf and the lualatex engine.
+    % luaotfload's fallback sends any codepoint the main font lacks (i.e. every
+    % emoji) to it, so emoji need no pre-processing: the old filter fetched one
+    % SVG per glyph from raw.githubusercontent.com on every single render.
+    %
+    % Renderer=HarfBuzz is required on the *text* fonts too, not just the emoji
+    % font: under the default node renderer luaotfload never consults the
+    % fallback list and every emoji comes out as a missing character. The `+'
+    % form appends -- plain \defaultfontfeatures replaces the whole set, so this
+    % must come after the two Scale/Ligatures lines above rather than before.
+    \usepackage{luaotfload}
+    \directlua{luaotfload.add_fallback("emojifallback", {"NotoColorEmoji:mode=harf;"})}
+    \defaultfontfeatures+{Renderer=HarfBuzz, RawFeature={fallback=emojifallback}}
+  \fi
 $if(mainfont)$
   \setmainfont[$for(mainfontoptions)$$mainfontoptions$$sep$,$endfor$]{$mainfont$}
+$else$
+  % The emoji fallback above only reaches families fontspec declares, so a
+  % document with no mainfont metadata still needs one set explicitly. Latin
+  % Modern is what LaTeX would have used anyway, so this changes nothing visible.
+  \ifluatex
+    \setmainfont{Latin Modern Roman}
+  \fi
 $endif$
 $if(sansfont)$
   \setsansfont[$for(sansfontoptions)$$sansfontoptions$$sep$,$endfor$]{$sansfont$}
