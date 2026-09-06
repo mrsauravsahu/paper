@@ -1,10 +1,12 @@
 .git
+.github
 .gitignore
 .claude
 .DS_Store
 node_modules
 npm-debug.log
 docs
+examples
 e2e
 editor
 examples

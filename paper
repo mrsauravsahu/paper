@@ -104,7 +104,7 @@ docker run --rm \
   -v "$INPUT_DIR:/input" \
   $DOCKER_OUTPUT_MOUNT \
   -e MERMAID_FILTER_FORMAT=pdf \
-  paper:latest bash -c \
+  ghcr.io/mrsauravsahu/paper:latest bash -c \
   "pandoc /input/$INPUT_BASENAME -o $PANDOC_OUTPUT \
      --template=/paper/config/template.tex \
      --pdf-engine=lualatex \
