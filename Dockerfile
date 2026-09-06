@@ -2,8 +2,8 @@
 #
 # Built from components rather than a prebuilt pandoc/TeX base image:
 #   - pandoc          upstream .deb release (~30 MB)
-#   - pdflatex        TeX Live scheme-infraonly + only the packages template.tex loads
-#   - node            for the emoji / mermaid pandoc filters in src/
+#   - lualatex        TeX Live scheme-infraonly + only the packages template.tex loads
+#   - node            for the mermaid pandoc filter
 # Each is assembled in its own stage; the runtime image copies in only the
 # finished trees, so no installers, caches or package indexes are committed.
 
@@ -63,7 +63,9 @@ RUN tlmgr install \
       epstopdf-pkg auxhook bigintcalc bitset etexcmds gettitlestring \
       hycolor intcalc kvdefinekeys letltxmacro pdfescape refcount \
       rerunfilecheck stringenc uniquecounter zapfding symbol \
+      luatex luahbtex fontspec unicode-math lualatex-math luaotfload lm-math \
  && fmtutil-sys --byfmt pdflatex \
+ && fmtutil-sys --byfmt lualatex \
  && rm -rf /opt/texlive/texmf-dist/doc /opt/texlive/texmf-var/web2c/*.log
 
 # ---- Stage: node dependencies ---------------------------------------------
@@ -84,11 +86,12 @@ ARG NODE_VERSION
 ARG WITH_CHROMIUM=1
 RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "30";' > /etc/apt/apt.conf.d/99retries
 
-# librsvg2-bin gives rsvg-convert for emoji SVG -> PDF (replaces inkscape).
+# fonts-noto-color-emoji renders emoji directly, replacing the old filter that
+# downloaded an SVG per glyph from raw.githubusercontent.com at render time.
 # Chromium is only needed for mermaid diagrams; see MERMAID note in README.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      ca-certificates perl librsvg2-bin fontconfig \
+      ca-certificates perl fontconfig fonts-noto-color-emoji \
  && if [ "$WITH_CHROMIUM" = "1" ]; then \
       apt-get install -y --no-install-recommends chromium fonts-liberation; \
     fi \
@@ -110,7 +113,6 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 WORKDIR /paper
 COPY --from=deps /paper/node_modules ./node_modules
 COPY config/ config/
-COPY src/ src/
 
 LABEL org.opencontainers.image.title="paper" \
       org.opencontainers.image.description="Render Markdown to a styled PDF via pandoc, pdflatex and twemoji" \
