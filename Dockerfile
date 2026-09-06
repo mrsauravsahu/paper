@@ -36,8 +36,26 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp/install-tl
-RUN curl -fsSL https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz \
-      | tar xz --strip-components=1 \
+# Named mirrors tried in order, not mirror.ctan.org: that redirector hands out
+# a different geo-random host per request, so a runner can land on one that is
+# mid-sync or unreachable, and the installer tarball and the package repository
+# can come from two mirrors at different sync points. Whichever host serves the
+# tarball also serves the packages, via --repository below.
+#
+# Downloading to a file rather than piping into tar keeps a truncated transfer
+# reported as a curl error; `curl | tar xz` reports only tar's exit 2 and
+# swallows curl's status with it.
+ARG TL_MIRRORS="https://ctan.math.illinois.edu/systems/texlive/tlnet https://mirror.las.iastate.edu/tex-archive/systems/texlive/tlnet https://ftp.fau.de/ctan/systems/texlive/tlnet"
+RUN for m in ${TL_MIRRORS}; do \
+      echo "trying ${m}" \
+      && curl -fsSL --retry 3 --retry-all-errors --retry-delay 5 --connect-timeout 30 \
+           -o install-tl-unx.tar.gz "${m}/install-tl-unx.tar.gz" \
+      && tar xzf install-tl-unx.tar.gz --strip-components=1 \
+      && echo "${m}" > /tmp/tl-repository \
+      && break; \
+    done \
+ && test -s /tmp/tl-repository \
+ && rm install-tl-unx.tar.gz \
  && printf '%s\n' \
       'selected_scheme scheme-infraonly' \
       'TEXDIR /opt/texlive' \
@@ -48,8 +66,8 @@ RUN curl -fsSL https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.
       'option_doc 0' \
       'option_src 0' \
       > texlive.profile \
- && ./install-tl --profile=texlive.profile \
- && rm -rf /tmp/install-tl
+ && ./install-tl --profile=texlive.profile --repository "$(cat /tmp/tl-repository)" \
+ && rm -rf /tmp/install-tl /tmp/tl-repository
 
 ENV PATH=/opt/texlive/bin/aarch64-linux:/opt/texlive/bin/x86_64-linux:$PATH
 
