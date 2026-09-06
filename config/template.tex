@@ -282,13 +282,13 @@ $else$
 $if(continuous-page)$
 \usepackage[margin=1in,paperheight=99in]{geometry}
 \makeatletter
-\AtEndDocument{\newdimen\rhl\rhl\dimexpr\pagetotal+2in\relax\ifdim\rhl<11in\rhl=11in\fi\global\pdfpageheight=\rhl}
+\AtEndDocument{\newdimen\rhl\rhl\dimexpr\pagetotal+2in\relax\ifdim\rhl<11in\rhl=11in\fi\ifdefined\pdfpageheight\global\pdfpageheight=\rhl\else\global\pageheight=\rhl\fi}
 \makeatother
 $else$
 $if(continuous)$
 \usepackage[margin=1in,paperheight=99in]{geometry}
 \makeatletter
-\AtEndDocument{\newdimen\rhl\rhl\dimexpr\pagetotal+2in\relax\ifdim\rhl<11in\rhl=11in\fi\global\pdfpageheight=\rhl}
+\AtEndDocument{\newdimen\rhl\rhl\dimexpr\pagetotal+2in\relax\ifdim\rhl<11in\rhl=11in\fi\ifdefined\pdfpageheight\global\pdfpageheight=\rhl\else\global\pageheight=\rhl\fi}
 \makeatother
 $else$
 \usepackage[margin=1in]{geometry}
