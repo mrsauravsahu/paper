@@ -8,3 +8,5 @@ id,description,command,check
 7,mermaid custom themes and fonts - pdf must be produced,paper tests/mermaid-custom-theme.md -n -o tests/out-mermaid-custom-theme.pdf,test -f tests/out-mermaid-custom-theme.pdf
 8,no -o flag - pdf must appear next to input with same basename,paper tests/default-output.md -n,test -f tests/default-output.pdf
 9,colour emoji - flags and ZWJ sequences must render with no missing characters,paper tests/colour-emoji.md -n -o tests/out-colour-emoji.pdf 2> tests/colour-emoji.log,test -f tests/out-colour-emoji.pdf && ! grep -q "Missing character" tests/colour-emoji.log
+10,bare --title flag with frontmatter - pdf must be produced,paper tests/title-frontmatter.md -n -o tests/out-title.pdf --title,test -f tests/out-title.pdf
+11,continuous mode under lualatex - pdf must be produced,paper tests/continuous-short.md -n -o tests/out-continuous.pdf --continuous,test -f tests/out-continuous.pdf
