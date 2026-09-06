@@ -1,6 +1,6 @@
 ---
-Title: The Paper Project
-Author: Sahu, S
+title: The Paper Project
+author: Sahu, S
 ---
 
 Paper is the truest form of a document, physical, permanent, and universally readable. 'The Paper Project' brings together Markdown and LaTeX with diagrams, formulae, and rich formatting and renders the result as a PDF.
