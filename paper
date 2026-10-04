@@ -100,7 +100,9 @@ if grep -q '^[[:space:]]*```[[:space:]]*mermaid' "$INPUT"; then
 fi
 
 echo "Generating PDF..."
+
 docker run --rm \
+  --platform linux/amd64 \
   -v "$INPUT_DIR:/input" \
   $DOCKER_OUTPUT_MOUNT \
   -e MERMAID_FILTER_FORMAT=pdf \
